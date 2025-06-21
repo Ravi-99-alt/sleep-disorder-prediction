@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Dataset Preview</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #111827;
+            color: white;
+        }
+        .container {
+            margin-top: 40px;
+        }
+        table.dataTable thead th {
+            color: white;
+        }
+        .btn-custom {
+            background-color: #3b82f6;
+            color: white;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h2 class="text-center mb-4">📄 Uploaded Dataset Preview</h2>
+    <table id="data-table" class="display table table-bordered table-striped" style="width:100%">
+        <thead>
+            <tr>
+                {% for col in headers %}
+                    <th>{{ col }}</th>
+                {% endfor %}
+            </tr>
+        </thead>
+    </table>
+    <div class="text-center mt-4">
+    <a href="{{ url_for('index', filename=filename) }}" class="btn btn-custom">🧠 Continue to Prediction</a>
+ </div>
+</div>
+<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script>
+    $(document).ready(function () {
+        var filename = "{{ filename }}";
+        $('#data-table').DataTable({
+            "processing": true,
+            "serverSide": true,
+            "ajax": {
+                "url": "/data_server/" + filename,
+                "type": "POST"
+            }
+        });
+    });
+</script>
+</body>
+</html>

@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Sleep Disorder Predictor</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"  rel="stylesheet">
+
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"> 
+
+    <style>
+        body {
+            background: linear-gradient(135deg, #2c3e50, #3498db);
+            color: white;
+            font-family: 'Segoe UI', sans-serif;
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 700px;
+            margin: auto;
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+            padding: 30px;
+        }
+
+        label.form-label {
+            font-weight: bold;
+        }
+
+        select.form-select, input.form-control {
+            width: 100%;
+            padding: 10px;
+            border-radius: 10px;
+            border: none;
+            font-size: 16px;
+        }
+
+        button.btn-primary {
+            background: linear-gradient(45deg, #00c6ff, #007cfe);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 10px;
+            border: none;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+
+        button.btn-primary:hover {
+            transform: scale(1.05);
+        }
+    </style>
+</head>
+<body class="text-center">
+
+<div class="container">
+    <h2 class="mb-4">🧠 Sleep Disorder Predictor</h2>
+    <p class="text-muted mb-4">Enter your health details below</p>
+
+    <form method="POST" action="/predict">
+        <div class="row g-3 text-start">
+            <div class="col-md-6">
+                <label class="form-label"><i class="fas fa-venus-mars me-1"></i>Gender</label>
+                <select name="Gender" class="form-select" required>
+                    <option value="">Select Gender</option>
+                    {% for cls in gender_classes %}
+                        <option value="{{ cls }}">{{ cls }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label"><i class="fas fa-user me-1"></i>Age</label>
+                <input type="number" name="Age" min="18" max="100" class="form-control" placeholder="e.g., 35" required>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label"><i class="fas fa-briefcase me-1"></i>Occupation</label>
+                <select name="Occupation" class="form-select" required>
+                    <option value="">Select Occupation</option>
+                    {% for cls in occupation_classes %}
+                        <option value="{{ cls }}">{{ cls }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label"><i class="fas fa-bed me-1"></i>Sleep Duration (hrs)</label>
+                <input type="number" step="any" name="Sleep_duration" class="form-control" placeholder="e.g., 7.5" required>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label"><i class="fas fa-star me-1"></i>Quality of Sleep (1–10)</label>
+                <select name="Quality_of_sleep" class="form-select" required>
+                    {% for i in range(1, 11) %}
+                        <option value="{{ i }}">{{ i }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label"><i class="fas fa-dumbbell me-1"></i>Physical Activity</label>
+                <input type="number" step="0.1" name="Physical_activity" class="form-control" placeholder="e.g., 60.5" required>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label"><i class="fas fa-bolt me-1"></i>Stress Level (1–10)</label>
+                <input type="number" name="Stress_Level" min="1" max="10" class="form-control" placeholder="e.g., 7" required>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label"><i class="fas fa-weight-hanging me-1"></i>BMI Category</label>
+                <select name="BMI_category" class="form-select" required>
+                    <option value="">Select BMI Category</option>
+                    {% for cls in bmi_classes %}
+                        <option value="{{ cls }}">{{ cls }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label"><i class="fas fa-heartbeat me-1"></i>Blood Pressure</label>
+                <input type="text" name="Blood_pressure" class="form-control" placeholder="e.g., 120/80" pattern="\d+/\d+" required>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label"><i class="fas fa-heart-pulse me-1"></i>Heart Rate</label>
+                <input type="number" name="Heart_rate" class="form-control" placeholder="e.g., 72" required>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label"><i class="fas fa-shoe-prints me-1"></i>Daily Steps</label>
+                <input type="number" name="Daily_steps" class="form-control" placeholder="e.g., 7000" required>
+            </div>
+            <div class="col-12 mt-4">
+                <button type="submit" class="btn btn-primary w-100">Predict Sleep Disorder</button>
+            </div>
+        </div>
+    </form>
+</div>
+
+</body>
+</html>

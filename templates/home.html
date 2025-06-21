@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>🧠 Sleep Disorder Prediction</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"  rel="stylesheet">
+
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">       
+
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', sans-serif;
+            background-image: url("{{ url_for('static', filename='images/background.jpg') }}");
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            min-height: 100vh;
+            color: white;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .content {
+            flex: 1;
+            text-align: center;
+            padding-top: 120px;
+        }
+
+        .hero-title {
+            font-size: 2.8rem;
+            font-weight: bold;
+            margin-bottom: 20px;
+            color: #00ffff;
+            text-shadow: 1px 1px 6px rgba(0, 0, 0, 0.4);
+        }
+
+        .hero-subtitle {
+            font-size: 1.3rem;
+            color: #e0e0e0;
+            max-width: 650px;
+            margin: auto;
+            margin-bottom: 40px;
+            line-height: 1.5;
+        }
+
+        .btn-start {
+            background: linear-gradient(to right, #007cfe, #00c6ff);
+            color: white;
+            padding: 14px 30px;
+            font-size: 1.1rem;
+            border-radius: 30px;
+            border: none;
+            box-shadow: 0 4px 10px rgba(0, 192, 255, 0.3);
+            transition: background 0.3s ease, transform 0.2s ease;
+        }
+
+        .btn-start:hover {
+            background: linear-gradient(to right, #00ffe7, #0099cc);
+            transform: scale(1.05);
+        }
+
+        .top-nav {
+            position: absolute;
+            top: 20px;
+            right: 30px;
+            z-index: 2;
+        }
+
+        .nav-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 25px;
+            margin-left: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .nav-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(5px);
+        }
+
+        footer {
+            text-align: center;
+            padding: 15px 0;
+            font-size: 0.9rem;
+            color: #ccc;
+            background-color: rgba(0, 0, 0, 0.3); /* Optional: semi-transparent background */
+            width: 100%;
+            margin-top: auto;
+        }
+    </style>
+</head>
+<body>
+
+<!-- Top Navigation Buttons -->
+<div class="top-nav">
+    <a href="/login" class="btn nav-btn">🔐 Login</a>
+    <a href="/" class="btn nav-btn">🏠 Home</a>
+</div>
+
+<!-- Hero Content -->
+<div class="content">
+    <img src="{{ url_for('static', filename='images/brain-icon.png') }}" width="80" alt="Brain Icon" class="mb-4">
+    <h1 class="hero-title">Sleep Disorder Prediction</h1>
+    <p class="hero-subtitle">
+        Use our machine learning model to predict sleep disorders like Insomnia and Sleep Apnea.
+        Just enter your health metrics and get instant insights.
+    </p>
+    <a href="/login" class="btn btn-start">🚀 Start Predicting</a>
+</div>
+
+<!-- Footer -->
+<footer>
+    &copy; 2025 Sleep Disorder Prediction Project | Built with Flask + ML
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>    
+
+</body>
+</html>
