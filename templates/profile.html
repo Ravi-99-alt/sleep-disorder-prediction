@@ -1,0 +1,46 @@
+<!-- templates/profile.html -->
+{% extends "base.html" %}
+{% block title %}User Profile - Sleep Disorder App{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card bg-light text-dark p-4 border-0 shadow">
+            <h3 class="mb-4 text-center text-primary"><i class="fas fa-user-circle me-2"></i>User Profile</h3>
+            
+            {% if error %}
+                <div class="alert alert-danger">{{ error }}</div>
+            {% endif %}
+            
+            {% if success %}
+                <div class="alert alert-success">{{ success }}</div>
+            {% endif %}
+
+            <form method="POST" action="{{ url_for('profile') }}">
+                <div class="mb-3">
+                    <label for="email" class="form-label">Email address</label>
+                    <input type="email" class="form-control" id="email" value="{{ user.email }}" disabled>
+                    <div class="form-text">Email cannot be changed.</div>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="first_name" class="form-label">First Name</label>
+                    <input type="text" class="form-control" id="first_name" name="first_name" value="{{ user.first_name or '' }}">
+                </div>
+                
+                <div class="mb-3">
+                    <label for="last_name" class="form-label">Last Name</label>
+                    <input type="text" class="form-control" id="last_name" name="last_name" value="{{ user.last_name or '' }}">
+                </div>
+                
+                <button type="submit" class="btn btn-primary w-100">Update Profile</button>
+            </form>
+            
+            <div class="text-center mt-4">
+                <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">
+                    <i class="fas fa-tachometer-alt me-2"></i>Back to Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,136 @@
+<!-- templates/index.html -->
+{% extends "base.html" %}
+{% block title %}Make Prediction - Sleep Disorder App{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card bg-light text-dark p-4 border-0 shadow">
+            <h3 class="mb-4 text-center text-primary"><i class="fas fa-calculator me-2"></i>Sleep Disorder Prediction</h3>
+
+            <form method="POST" action="{{ url_for('predict') }}" id="prediction-form">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="Gender" class="form-label">Gender</label>
+                        <select class="form-select" id="Gender" name="Gender" required>
+                            <option value="">Select Gender</option>
+                            {% for gender in gender_classes %}
+                                <option value="{{ gender }}">{{ gender }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="Age" class="form-label">Age</label>
+                        <input type="number" class="form-control" id="Age" name="Age" min="18" max="100" required>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="Occupation" class="form-label">Occupation</label>
+                        <select class="form-select" id="Occupation" name="Occupation" required>
+                            <option value="">Select Occupation</option>
+                            {% for occupation in occupation_classes %}
+                                <option value="{{ occupation }}">{{ occupation }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="Sleep_duration" class="form-label">Sleep Duration (hours)</label>
+                        <input type="number" class="form-control" id="Sleep_duration" name="Sleep_duration" step="0.1" min="0" max="24" required>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="Quality_of_sleep" class="form-label">Quality of Sleep (1–10)</label>
+                        <input type="number" class="form-control" id="Quality_of_sleep" name="Quality_of_sleep" min="1" max="10" required>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="Physical_activity" class="form-label">Physical Activity (mins)</label>
+                        <input type="number" class="form-control" id="Physical_activity" name="Physical_activity" min="0" max="1000" required>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="Stress_Level" class="form-label">Stress Level (1–10)</label>
+                        <input type="number" class="form-control" id="Stress_Level" name="Stress_Level" min="1" max="10" required>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="Heart_rate" class="form-label">Heart Rate (bpm)</label>
+                        <input type="number" class="form-control" id="Heart_rate" name="Heart_rate" min="30" max="200" required>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="Daily_steps" class="form-label">Daily Steps</label>
+                        <input type="number" class="form-control" id="Daily_steps" name="Daily_steps" min="0" max="50000" required>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="BMI_category" class="form-label">BMI Category</label>
+                        <select class="form-select" id="BMI_category" name="BMI_category" required>
+                            <option value="">Select BMI Category</option>
+                            {% for bmi in bmi_classes %}
+                                <option value="{{ bmi }}">{{ bmi }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <label for="Blood_pressure" class="form-label">Blood Pressure (Systolic/Diastolic)</label>
+                    <input type="text"
+                           class="form-control"
+                           id="Blood_pressure"
+                           name="Blood_pressure"
+                           placeholder="e.g., 120/80"
+                           pattern="\d{2,3}/\d{2,3}"
+                           title="Enter as Systolic/Diastolic (e.g., 120/80)"
+                           required>
+                    <div class="form-text">Format: <code>120/80</code></div>
+                </div>
+
+                <button type="submit" class="btn btn-primary w-100 btn-lg">
+                    <i class="fas fa-bolt me-2"></i>Predict Sleep Disorder
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const prefilled = {{ prefilled_data | tojson }};
+
+        if (prefilled) {
+            const fieldMap = {
+                'Gender': 'Gender',
+                'Age': 'Age',
+                'Occupation': 'Occupation',
+                'Sleep Duration': 'Sleep_duration',
+                'Quality of Sleep': 'Quality_of_sleep',
+                'Physical Activity': 'Physical_activity',
+                'Stress Level': 'Stress_Level',
+                'Heart Rate': 'Heart_rate',
+                'Daily Steps': 'Daily_steps',
+                'BMI Category': 'BMI_category',
+                'Blood Pressure': 'Blood_pressure'
+            };
+
+            Object.keys(fieldMap).forEach(key => {
+                const value = prefilled[key];
+                if (value !== undefined && value !== null) {
+                    const fieldName = fieldMap[key];
+                    const element = document.querySelector(`[name="${fieldName}"]`);
+                    if (element) {
+                        element.value = value;
+                    }
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}

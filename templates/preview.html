@@ -1,0 +1,153 @@
+<!-- templates/preview.html -->
+{% extends "base.html" %}
+{% block title %}Dataset Preview - Sleep Disorder App{% endblock %}
+{% block head %}
+<link href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css" rel="stylesheet">
+<style>
+    .dataTables_wrapper .dataTables_paginate .paginate_button {
+        color: #333 !important;
+        background: rgba(0, 0, 0, 0.05) !important;
+        border: 1px solid rgba(0, 0, 0, 0.1) !important;
+    }
+    .dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+        color: #333 !important;
+        background: rgba(0, 123, 255, 0.2) !important;
+    }
+    .dataTables_wrapper .dataTables_filter input,
+    .dataTables_wrapper .dataTables_length select {
+        background-color: #fff;
+        border: 1px solid rgba(0, 0, 0, 0.1);
+        color: #333;
+        border-radius: 5px;
+        padding: 5px;
+    }
+    table.dataTable thead th {
+        background-color: rgba(0, 0, 0, 0.05);
+        color: #333;
+    }
+    .dt-buttons {
+        margin-bottom: 15px;
+    }
+    .dataTables_scrollBody {
+        max-height: 500px;
+        overflow-y: auto;
+    }
+    tbody tr {
+        cursor: pointer;
+        transition: background-color 0.2s ease;
+    }
+    tbody tr:hover {
+        background-color: #e9ecef !important;
+    }
+    tbody tr.selected {
+        background-color: #cce5ff !important;
+    }
+</style>
+{% endblock %}
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <a href="{{ url_for('upload') }}" class="btn btn-outline-light btn-sm"><i class="fas fa-arrow-left me-1"></i> Back</a>
+            <h2><i class="fas fa-table me-2"></i>Uploaded Dataset Preview: {{ filename }}</h2>
+            <div></div>
+        </div>
+
+        <div class="card bg-light text-dark border-0 shadow">
+            <div class="card-body">
+                <table id="data-table" class="display table table-bordered table-striped" style="width:100%">
+                    <thead>
+                        <tr>
+                            {% for col in headers %}
+                                <th>{{ col }}</th>
+                            {% endfor %}
+                        </tr>
+                    </thead>
+                </table>
+            </div>
+        </div>
+
+        <div class="d-flex justify-content-between mt-4">
+            <div></div>
+            <div>
+                <form action="{{ url_for('save_daily_tracking', filename=filename) }}" method="POST" style="display: inline;">
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-save me-1"></i> Save to Daily Tracking
+                    </button>
+                </form>
+                <button id="prefill-btn" class="btn btn-primary" disabled>
+                    <i class="fas fa-brain me-1"></i> Prefill Prediction Form
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+<script>
+$(document).ready(function () {
+    var filename = "{{ filename }}";
+    var table = $('#data-table').DataTable({
+        "processing": true,
+        "serverSide": true,
+        "ajax": {
+            "url": "/data_server/" + filename,
+            "type": "POST"
+        },
+        "scrollX": true,
+        "scrollY": "500px",
+        "scrollCollapse": true,
+        "pageLength": 25
+    });
+
+    var selectedRowData = null;
+
+    $('#data-table tbody').on('click', 'tr', function () {
+        if ($(this).hasClass('selected')) {
+            $(this).removeClass('selected');
+            selectedRowData = null;
+            $('#prefill-btn').prop('disabled', true);
+        } else {
+            table.$('tr.selected').removeClass('selected');
+            $(this).addClass('selected');
+            selectedRowData = table.row(this).data();
+            $('#prefill-btn').prop('disabled', false);
+        }
+    });
+
+    $('#prefill-btn').on('click', function () {
+        if (selectedRowData) {
+            var headers = [];
+            $('#data-table thead th').each(function() {
+                headers.push($(this).text());
+            });
+
+            var rowData = {};
+            headers.forEach((header, index) => {
+                rowData[header] = selectedRowData[index];
+            });
+
+            $.ajax({
+                url: '/prefill_index',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(rowData),
+                success: function(response) {
+                    if (response.success) {
+                        window.location.href = '/index';
+                    } else {
+                        alert("Failed to prefill data.");
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error("Prefill AJAX Error:", status, error);
+                    alert("An error occurred while prefilling data.");
+                }
+            });
+        }
+    });
+});
+</script>
+{% endblock %}

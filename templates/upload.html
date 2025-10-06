@@ -1,0 +1,25 @@
+<!-- templates/upload.html -->
+{% extends "base.html" %}
+{% block title %}Upload Dataset - Sleep Disorder App{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card bg-light text-dark p-4 border-0 shadow">
+            <h3 class="mb-4 text-primary"><i class="fas fa-cloud-upload-alt me-2"></i>Upload Sleep Data</h3>
+            
+            {% if error %}
+                <div class="alert alert-danger">{{ error }}</div>
+            {% endif %}
+            
+            <form method="POST" action="{{ url_for('upload') }}" enctype="multipart/form-data">
+                <div class="mb-3">
+                    <label for="document" class="form-label">Select CSV File</label>
+                    <input class="form-control" type="file" id="document" name="document" accept=".csv" required>
+                    <div class="form-text">Upload a CSV file containing sleep data for batch processing or daily tracking.</div>
+                </div>
+                <button type="submit" class="btn btn-primary"><i class="fas fa-upload me-2"></i>Upload</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

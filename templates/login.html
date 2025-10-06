@@ -1,0 +1,38 @@
+<!-- templates/login.html -->
+{% extends "base.html" %}
+{% block title %}Login - Sleep Disorder App{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6 col-lg-4">
+        <div class="card bg-light text-dark p-4 border-0 shadow">
+            <h3 class="text-center mb-4 text-primary"><i class="fas fa-sign-in-alt me-2"></i>Login</h3>
+            
+            {% if error %}
+                <div class="alert alert-danger">{{ error }}</div>
+            {% endif %}
+
+            <form method="POST">
+                <div class="mb-3">
+                    <label for="email" class="form-label">Email address</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-secondary text-white"><i class="fas fa-envelope"></i></span>
+                        <input type="email" class="form-control" id="email" name="email" required>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label for="password" class="form-label">Password</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-secondary text-white"><i class="fas fa-lock"></i></span>
+                        <input type="password" class="form-control" id="password" name="password" required>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary w-100">Login</button>
+            </form>
+            
+            <div class="text-center mt-3">
+                <p>Don't have an account? <a href="{{ url_for('register') }}" class="text-primary">Register here</a></p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,761 @@
+<!-- templates/dashboard.html -->
+{% extends "base.html" %}
+{% block title %}Dashboard - Sleep Disorder App{% endblock %}
+{% block head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<!-- Add Chart.js plugin for data labels (optional, for pie chart values) -->
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+<style>
+    .metric-card {
+        transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+        border: none;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    .metric-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 6px 12px rgba(0,0,0,0.2);
+    }
+    .chart-container {
+        position: relative;
+        height: 300px; /* Consistent height */
+        width: 100%;
+    }
+    .chart-card {
+        transition: box-shadow 0.3s ease-in-out;
+        border: none;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        margin-bottom: 1.5rem; /* Consistent spacing */
+    }
+    .chart-card:hover {
+        box-shadow: 0 8px 16px rgba(0,0,0,0.2) !important;
+    }
+    .card-header {
+        font-weight: 500;
+    }
+    /* Custom scrollbar for better UX */
+    ::-webkit-scrollbar {
+        width: 12px;
+    }
+    ::-webkit-scrollbar-track {
+        background: #2d2d2d;
+    }
+    ::-webkit-scrollbar-thumb {
+        background: #555;
+        border-radius: 6px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+        background: #777;
+    }
+</style>
+{% endblock %}
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h2 class="mb-4 text-primary">Welcome, {{ user.first_name or user.email }}!</h2>
+    </div>
+</div>
+
+<!-- Key Metrics Cards -->
+<div class="row mb-4 g-3"> <!-- Added g-3 for gutter spacing -->
+    <div class="col-md-3">
+        <div class="card bg-primary text-white metric-card shadow-sm h-100"> <!-- h-100 for equal height -->
+            <div class="card-body text-center d-flex flex-column justify-content-center">
+                <h5 class="card-title">Total Predictions</h5>
+                <h2 class="display-6">{{ stats.total_predictions }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-success text-white metric-card shadow-sm h-100">
+            <div class="card-body text-center d-flex flex-column justify-content-center">
+                <h5 class="card-title">Healthy</h5>
+                <h2 class="display-6">{{ stats.healthy_count }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-warning text-dark metric-card shadow-sm h-100">
+            <div class="card-body text-center d-flex flex-column justify-content-center">
+                <h5 class="card-title">Insomnia</h5>
+                <h2 class="display-6">{{ stats.insomnia_count }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-danger text-white metric-card shadow-sm h-100">
+            <div class="card-body text-center d-flex flex-column justify-content-center">
+                <h5 class="card-title">Sleep Apnea</h5>
+                <h2 class="display-6">{{ stats.apnea_count }}</h2>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Latest Metrics Cards -->
+<div class="row mb-4 g-3">
+    <div class="col-md-3">
+        <div class="card bg-info text-white metric-card shadow-sm h-100">
+            <div class="card-body text-center d-flex flex-column justify-content-center">
+                <h5 class="card-title"><i class="fas fa-heartbeat me-2"></i>Heart Rate</h5>
+                <h3 class="display-7">{{ stats.latest_heart_rate }}</h3>
+                <small>bpm</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-info text-white metric-card shadow-sm h-100">
+            <div class="card-body text-center d-flex flex-column justify-content-center">
+                <h5 class="card-title"><i class="fas fa-tachometer-alt me-2"></i>Stress Level</h5>
+                <h3 class="display-7">{{ stats.latest_stress }}</h3>
+                <small>/10</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-info text-white metric-card shadow-sm h-100">
+            <div class="card-body text-center d-flex flex-column justify-content-center">
+                <h5 class="card-title"><i class="fas fa-heart me-2"></i>Blood Pressure</h5>
+                <h3 class="display-7">{{ stats.latest_blood_pressure }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-info text-white metric-card shadow-sm h-100">
+            <div class="card-body text-center d-flex flex-column justify-content-center">
+                <h5 class="card-title"><i class="fas fa-shoe-prints me-2"></i>Daily Steps</h5>
+                <h3 class="display-7">{{ stats.latest_daily_steps }}</h3>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4"> <!-- Main chart rows -->
+    <!-- Sleep Duration Trend -->
+    <div class="col-lg-8">
+        <div class="card bg-dark text-white border-0 shadow chart-card h-100">
+            <div class="card-header bg-secondary">
+                <h5 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Sleep Duration Trend (Last 7)</h5>
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <canvas id="durationChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Recent Activity -->
+    <div class="col-lg-4">
+        <div class="card bg-dark text-white border-0 shadow chart-card h-100">
+            <div class="card-header bg-secondary">
+                <h5 class="mb-0"><i class="fas fa-history me-2"></i>Recent Activity</h5>
+            </div>
+            <div class="card-body">
+                {% if stats.recent_activity %}
+                    <ul class="list-group list-group-flush bg-transparent">
+                    {% for activity in stats.recent_activity %}
+                        <li class="list-group-item bg-transparent text-white border-secondary py-2">
+                            <div class="d-flex justify-content-between">
+                                <strong>{{ activity.details }}</strong>
+                                <small class="text-muted">{{ activity.date }}</small>
+                            </div>
+                        </li>
+                    {% endfor %}
+                    </ul>
+                {% else %}
+                    <p class="text-muted text-center my-4">No recent activity.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mt-2"> <!-- New Health Metrics Charts -->
+    <div class="col-lg-6">
+        <div class="card bg-dark text-white border-0 shadow chart-card h-100">
+            <div class="card-header bg-secondary">
+                <h5 class="mb-0"><i class="fas fa-chart-area me-2"></i>Heart Rate & Stress Level Trend</h5>
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <canvas id="healthMetricsChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card bg-dark text-white border-0 shadow chart-card h-100">
+            <div class="card-header bg-secondary">
+                <h5 class="mb-0"><i class="fas fa-heart me-2"></i>Blood Pressure & Daily Steps Trend</h5>
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <canvas id="bpStepsChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mt-2">
+    <!-- Prediction Distribution (Doughnut) -->
+    <div class="col-lg-4">
+        <div class="card bg-dark text-white border-0 shadow chart-card h-100">
+            <div class="card-header bg-secondary">
+                <h5 class="mb-0"><i class="fas fa-chart-pie me-2"></i>Prediction Distribution</h5>
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <canvas id="predictionChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Stress vs. Quality (Scatter) -->
+    <div class="col-lg-4">
+        <div class="card bg-dark text-white border-0 shadow chart-card h-100">
+            <div class="card-header bg-secondary">
+                <h5 class="mb-0"><i class="fas fa-brain me-2"></i>Stress vs. Quality</h5>
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <canvas id="stressQualityChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Prediction Stability (New Chart) -->
+    <div class="col-lg-4">
+        <div class="card bg-dark text-white border-0 shadow chart-card h-100">
+            <div class="card-header bg-secondary">
+                <h5 class="mb-0"><i class="fas fa-balance-scale me-2"></i>Prediction Stability</h5>
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <canvas id="predictionStabilityChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    // --- Get data passed from Flask template ---
+    const stats = {{ stats | tojson }};
+    console.log("Received stats:", stats);
+
+    // --- Chart Colors ---
+    const chartColors = {
+        blue: 'rgb(54, 162, 235)',
+        green: 'rgb(75, 192, 192)',
+        yellow: 'rgb(255, 205, 86)',
+        red: 'rgb(255, 99, 132)',
+        purple: 'rgb(153, 102, 255)',
+        orange: 'rgb(255, 159, 64)',
+        healthy: 'rgba(46, 204, 113, 0.8)', // Green
+        insomnia: 'rgba(241, 196, 15, 0.8)', // Yellow
+        apnea: 'rgba(231, 76, 60, 0.8)' // Red
+    };
+
+    // --- Improved Chart Configuration Base ---
+    const baseChartOptions = {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                labels: {
+                    color: 'rgba(255, 255, 255, 0.9)', // Brighter text
+                    font: { size: 12, family: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif" },
+                    padding: 12,
+                    usePointStyle: true // Use point style for legend items
+                }
+            },
+            tooltip: {
+                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                titleColor: 'rgba(255, 255, 255, 1)',
+                bodyColor: 'rgba(255, 255, 255, 0.9)',
+                borderColor: 'rgba(255, 255, 255, 0.1)',
+                borderWidth: 1,
+                padding: 10,
+                cornerRadius: 8,
+                displayColors: true,
+                mode: 'index', // Show all tooltips for index
+                intersect: false // Don't require exact point hover
+            }
+        },
+        interaction: {
+            mode: 'index',
+            intersect: false,
+        },
+        scales: {
+            x: {
+                grid: { color: 'rgba(255, 255, 255, 0.05)', drawBorder: true, borderColor: 'rgba(255, 255, 255, 0.1)' },
+                ticks: { color: 'rgba(255, 255, 255, 0.8)', font: { size: 11 } }
+            },
+            y: {
+                grid: { color: 'rgba(255, 255, 255, 0.05)', drawBorder: true, borderColor: 'rgba(255, 255, 255, 0.1)' },
+                ticks: { color: 'rgba(255, 255, 255, 0.8)', font: { size: 11 } }
+            }
+        }
+    };
+
+    // --- Utility to Destroy Existing Chart Instance ---
+    function destroyChart(chartVarName) {
+        if (window[chartVarName]) {
+            window[chartVarName].destroy();
+            window[chartVarName] = undefined;
+        }
+    }
+
+    // --- Prediction Distribution Doughnut Chart ---
+    if (stats.prediction_distribution && stats.prediction_distribution.labels.length > 0) {
+        const predCtx = document.getElementById('predictionChart').getContext('2d');
+        destroyChart('predictionChartInstance');
+
+        // Calculate total for percentage
+        const total = stats.prediction_distribution.data.reduce((a, b) => a + b, 0);
+        const percentages = stats.prediction_distribution.data.map(value => ((value / total) * 100).toFixed(1) + '%');
+
+        window.predictionChartInstance = new Chart(predCtx, {
+            type: 'doughnut',
+            data: {
+                labels: stats.prediction_distribution.labels,
+                datasets: [{
+                    label: 'Predictions',
+                    data: stats.prediction_distribution.data,
+                    backgroundColor: [
+                        chartColors.healthy,
+                        chartColors.insomnia,
+                        chartColors.apnea
+                    ],
+                    borderColor: [
+                        'rgba(46, 204, 113, 1)',
+                        'rgba(241, 196, 15, 1)',
+                        'rgba(231, 76, 60, 1)'
+                    ],
+                    borderWidth: 1.5,
+                    hoverOffset: 12
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '60%', // Make it a doughnut
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            ...baseChartOptions.plugins.legend.labels,
+                            padding: 15
+                        }
+                    },
+                    tooltip: {
+                        ...baseChartOptions.plugins.tooltip,
+                        callbacks: {
+                            label: function(context) {
+                                const label = context.label || '';
+                                const value = context.raw || 0;
+                                const percentage = percentages[context.dataIndex];
+                                return `${label}: ${value} (${percentage})`;
+                            }
+                        }
+                    },
+                    // Data Labels Plugin (shows % on slices)
+                    datalabels: {
+                        color: '#fff',
+                        formatter: (value, ctx) => {
+                            const total = ctx.dataset.data.reduce((a, b) => a + b, 0);
+                            const percentage = ((value / total) * 100).toFixed(1) + '%';
+                            return percentage;
+                        },
+                        font: { weight: 'bold', size: 14 }
+                    }
+                }
+            },
+            plugins: [ChartDataLabels] // Register the plugin for this chart
+        });
+    }
+
+    // --- Sleep Duration Trend Bar Chart ---
+    if (stats.duration_trend && stats.duration_trend.labels.length > 0) {
+        const durCtx = document.getElementById('durationChart').getContext('2d');
+        destroyChart('durationChartInstance');
+
+        window.durationChartInstance = new Chart(durCtx, {
+            type: 'bar', // Keep as bar
+            data: {
+                labels: stats.duration_trend.labels,
+                datasets: [{
+                    label: 'Hours',
+                    data: stats.duration_trend.data,
+                    backgroundColor: 'rgba(52, 152, 219, 0.7)', // Blue
+                    borderColor: 'rgba(52, 152, 219, 1)',
+                    borderWidth: 1,
+                    borderRadius: 4, // Rounded bars
+                    borderSkipped: false
+                }]
+            },
+            options: {
+                ...baseChartOptions,
+                plugins: {
+                    ...baseChartOptions.plugins,
+                    tooltip: {
+                        ...baseChartOptions.plugins.tooltip,
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) { label += ': '; }
+                                if (context.parsed.y !== null) {
+                                    label += context.parsed.y.toFixed(1) + ' hours';
+                                }
+                                return label;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    ...baseChartOptions.scales,
+                    y: {
+                        ...baseChartOptions.scales.y,
+                        beginAtZero: true, // Start Y-axis at 0
+                        title: {
+                            display: true,
+                            text: 'Hours',
+                            color: 'rgba(255, 255, 255, 0.8)',
+                            font: { size: 12, weight: 'bold' }
+                        }
+                    },
+                    x: {
+                        ...baseChartOptions.scales.x,
+                        title: {
+                            display: true,
+                            text: 'Date',
+                            color: 'rgba(255, 255, 255, 0.8)',
+                            font: { size: 12, weight: 'bold' }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // --- Stress vs Quality Scatter Chart ---
+    if (stats.stress_quality_data && stats.stress_quality_data.stress.length > 0) {
+        const stressCtx = document.getElementById('stressQualityChart').getContext('2d');
+        destroyChart('stressQualityChartInstance');
+
+        window.stressQualityChartInstance = new Chart(stressCtx, {
+            type: 'scatter', // Keep as scatter
+            data: {
+                datasets: [{
+                    label: 'Stress vs Quality',
+                    data: stats.stress_quality_data.stress.map((s, i) => ({x: s, y: stats.stress_quality_data.quality[i]})),
+                    backgroundColor: 'rgba(155, 89, 182, 0.6)', // Purple
+                    borderColor: 'rgba(155, 89, 182, 1)',
+                    pointRadius: 7,
+                    pointHoverRadius: 9,
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                ...baseChartOptions,
+                scales: {
+                    x: {
+                        ...baseChartOptions.scales.x,
+                        title: {
+                            display: true,
+                            text: 'Stress Level (1-10)',
+                            color: 'rgba(255, 255, 255, 0.9)',
+                            font: { size: 12, weight: 'bold' }
+                        },
+                        min: 0,
+                        max: 10,
+                        ticks: { stepSize: 1 }
+                    },
+                    y: {
+                        ...baseChartOptions.scales.y,
+                        title: {
+                            display: true,
+                            text: 'Sleep Quality (1-10)',
+                            color: 'rgba(255, 255, 255, 0.9)',
+                            font: { size: 12, weight: 'bold' }
+                        },
+                        min: 0,
+                        max: 10,
+                        ticks: { stepSize: 1 }
+                    }
+                },
+                plugins: {
+                    ...baseChartOptions.plugins,
+                    tooltip: {
+                        ...baseChartOptions.plugins.tooltip,
+                        callbacks: {
+                            label: function(context) {
+                                return `Stress: ${context.parsed.x}, Quality: ${context.parsed.y}`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // --- New Health Metrics Chart (Area Line) ---
+    if (stats.historical_data && stats.historical_data.dates.length > 0) {
+        const healthCtx = document.getElementById('healthMetricsChart').getContext('2d');
+        destroyChart('healthMetricsChartInstance');
+
+        window.healthMetricsChartInstance = new Chart(healthCtx, {
+            type: 'line', // Line chart with fill
+            data: {
+                labels: stats.historical_data.dates,
+                datasets: [
+                    {
+                        label: 'Heart Rate (bpm)',
+                        data: stats.historical_data.heart_rate,
+                        borderColor: chartColors.red,
+                        backgroundColor: 'rgba(255, 99, 132, 0.1)', // Lighter fill
+                        yAxisID: 'y',
+                        tension: 0.3, // Smooth line
+                        fill: true,
+                        pointRadius: 3, // Show points
+                        pointBackgroundColor: chartColors.red,
+                        pointBorderColor: '#fff',
+                        pointHoverRadius: 6,
+                        borderWidth: 2.5
+                    },
+                    {
+                        label: 'Stress Level',
+                        data: stats.historical_data.stress,
+                        borderColor: chartColors.orange,
+                        backgroundColor: 'rgba(255, 159, 64, 0.1)', // Lighter fill
+                        yAxisID: 'y1',
+                        tension: 0.3,
+                        fill: true,
+                        pointRadius: 3,
+                        pointBackgroundColor: chartColors.orange,
+                        pointBorderColor: '#fff',
+                        pointHoverRadius: 6,
+                        borderWidth: 2.5
+                    }
+                ]
+            },
+            options: {
+                ...baseChartOptions,
+                interaction: {
+                    mode: 'index',
+                    intersect: false,
+                },
+                stacked: false,
+                scales: {
+                    y: {
+                        type: 'linear',
+                        display: true,
+                        position: 'left',
+                        grid: baseChartOptions.scales.y.grid,
+                        ticks: baseChartOptions.scales.y.ticks,
+                        title: {
+                            display: true,
+                            text: 'Heart Rate (bpm)',
+                            color: 'rgba(255, 255, 255, 0.9)',
+                            font: { size: 12, weight: 'bold' }
+                        }
+                    },
+                    y1: {
+                        type: 'linear',
+                        display: true,
+                        position: 'right',
+                        grid: { drawOnChartArea: false, color: 'rgba(255, 255, 255, 0.05)' }, // No grid for 2nd axis
+                        ticks: baseChartOptions.scales.y.ticks,
+                        title: {
+                            display: true,
+                            text: 'Stress Level',
+                            color: 'rgba(255, 255, 255, 0.9)',
+                            font: { size: 12, weight: 'bold' }
+                        },
+                        min: 0,
+                        max: 10
+                    },
+                    x: {
+                        ...baseChartOptions.scales.x,
+                        title: {
+                            display: true,
+                            text: 'Date',
+                            color: 'rgba(255, 255, 255, 0.9)',
+                            font: { size: 12, weight: 'bold' }
+                        }
+                    }
+                }
+            }
+        });
+
+        // --- Blood Pressure & Daily Steps Chart (Area Line) ---
+        const bpStepsCtx = document.getElementById('bpStepsChart').getContext('2d');
+        destroyChart('bpStepsChartInstance');
+
+        window.bpStepsChartInstance = new Chart(bpStepsCtx, {
+            type: 'line', // Line chart with fill
+            data: {
+                labels: stats.historical_data.dates,
+                datasets: [
+                    {
+                        label: 'Systolic BP',
+                        data: stats.historical_data.systolic_bp,
+                        borderColor: chartColors.yellow,
+                        backgroundColor: 'rgba(255, 205, 86, 0.1)', // Lighter fill
+                        yAxisID: 'y',
+                        tension: 0.3,
+                        fill: true,
+                        pointRadius: 3,
+                        pointBackgroundColor: chartColors.yellow,
+                        pointBorderColor: '#fff',
+                        pointHoverRadius: 6,
+                        borderWidth: 2.5
+                    },
+                    {
+                        label: 'Diastolic BP',
+                        data: stats.historical_data.diastolic_bp,
+                        borderColor: chartColors.green,
+                        backgroundColor: 'rgba(75, 192, 192, 0.1)', // Lighter fill
+                        yAxisID: 'y',
+                        tension: 0.3,
+                        fill: true,
+                        pointRadius: 3,
+                        pointBackgroundColor: chartColors.green,
+                        pointBorderColor: '#fff',
+                        pointHoverRadius: 6,
+                        borderWidth: 2.5
+                    },
+                    {
+                        label: 'Daily Steps',
+                        data: stats.historical_data.daily_steps,
+                        borderColor: chartColors.purple,
+                        backgroundColor: 'rgba(153, 102, 255, 0.1)', // Lighter fill
+                        yAxisID: 'y1',
+                        tension: 0.3,
+                        fill: true,
+                        pointRadius: 3,
+                        pointBackgroundColor: chartColors.purple,
+                        pointBorderColor: '#fff',
+                        pointHoverRadius: 6,
+                        borderWidth: 2.5,
+                        borderDash: [5, 5] // Dashed line for steps
+                    }
+                ]
+            },
+            options: {
+                ...baseChartOptions,
+                interaction: {
+                    mode: 'index',
+                    intersect: false,
+                },
+                stacked: false,
+                scales: {
+                    y: {
+                        type: 'linear',
+                        display: true,
+                        position: 'left',
+                        grid: baseChartOptions.scales.y.grid,
+                        ticks: baseChartOptions.scales.y.ticks,
+                        title: {
+                            display: true,
+                            text: 'Blood Pressure (mmHg)',
+                            color: 'rgba(255, 255, 255, 0.9)',
+                            font: { size: 12, weight: 'bold' }
+                        }
+                    },
+                    y1: {
+                        type: 'linear',
+                        display: true,
+                        position: 'right',
+                        grid: { drawOnChartArea: false, color: 'rgba(255, 255, 255, 0.05)' },
+                        ticks: baseChartOptions.scales.y.ticks,
+                        title: {
+                            display: true,
+                            text: 'Daily Steps',
+                            color: 'rgba(255, 255, 255, 0.9)',
+                            font: { size: 12, weight: 'bold' }
+                        }
+                    },
+                    x: {
+                        ...baseChartOptions.scales.x,
+                        title: {
+                            display: true,
+                            text: 'Date',
+                            color: 'rgba(255, 255, 255, 0.9)',
+                            font: { size: 12, weight: 'bold' }
+                        }
+                    }
+                }
+            }
+        });
+    } else {
+        console.warn("Historical data not available or insufficient for charts.");
+        // Handle case where data is missing (already handled by chart not rendering)
+    }
+
+    // --- Prediction Stability Chart (New) ---
+    // This chart shows the consistency/stability of recent predictions.
+    if (stats.prediction_stability && stats.prediction_stability.labels.length > 0) {
+        const stabilityCtx = document.getElementById('predictionStabilityChart').getContext('2d');
+        destroyChart('predictionStabilityChartInstance'); // Use the utility function
+
+        window.predictionStabilityChartInstance = new Chart(stabilityCtx, {
+            type: 'bar', // You can also use 'doughnut' or 'line' if preferred
+            data: {
+                labels: stats.prediction_stability.labels, // e.g., ["Last 10 Predictions"]
+                datasets: [{
+                    label: 'Stability (%)', // Label for the dataset
+                    data: stats.prediction_stability.data, // e.g., [85.7]
+                    backgroundColor: 'rgba(46, 204, 113, 0.7)', // Greenish
+                    borderColor: 'rgba(46, 204, 113, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                ...baseChartOptions, // Inherit base styles
+                indexAxis: 'y', // Horizontal bar chart
+                scales: {
+                    ...baseChartOptions.scales,
+                    x: {
+                        ...baseChartOptions.scales.x,
+                        title: {
+                            display: true,
+                            text: 'Percentage (%)',
+                            color: 'rgba(255, 255, 255, 0.8)',
+                            font: { size: 12, weight: 'bold' }
+                        },
+                        min: 0,
+                        max: 100 // Percentage scale
+                    },
+                    y: {
+                        ...baseChartOptions.scales.y,
+                         // No specific title needed for a single label like "Last N"
+                    }
+                },
+                 plugins: {
+                    ...baseChartOptions.plugins,
+                    tooltip: {
+                        ...baseChartOptions.plugins.tooltip,
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                if (context.parsed.x !== null) {
+                                    label += context.parsed.x.toFixed(1) + '%';
+                                }
+                                return label;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+    // --- End of Prediction Stability Chart ---
+});
+</script>
+{% endblock %}
