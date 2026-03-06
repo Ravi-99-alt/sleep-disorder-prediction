@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 Flask>=3.0
 Flask-SQLAlchemy>=3.1
 Flask-Login>=0.6.3
@@ -8,14 +7,4 @@ numpy>=2.3
 scikit-learn>=1.5
 imbalanced-learn>=0.12
 joblib>=1.4
-=======
-pandas
-numpy
-scikit-learn
-matplotlib
-seaborn
-imbalanced-learn
-flask
-joblib
 gunicorn
->>>>>>> f7ac1e7ce7446b5fb6e2ab8b3fcfc2636f4b427d
