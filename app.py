@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 import os
 from werkzeug.utils import secure_filename
-from database import
+from database import *
 
 app = Flask(__name__)
 app.secret_key = "a_very_secret_key_for_sleep_app_2024"
