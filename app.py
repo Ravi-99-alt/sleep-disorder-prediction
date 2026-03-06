@@ -1,34 +1,23 @@
-<<<<<<< HEAD
 # app.py
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify, flash
-=======
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify
->>>>>>> f7ac1e7ce7446b5fb6e2ab8b3fcfc2636f4b427d
 import joblib
 import numpy as np
 import pandas as pd
 import os
 from werkzeug.utils import secure_filename
-<<<<<<< HEAD
 from database import *
 
 app = Flask(__name__)
 app.secret_key = "a_very_secret_key_for_sleep_app_2024"
-=======
-
 app = Flask(__name__)
 app.secret_key = "your_secret_key"
-
->>>>>>> f7ac1e7ce7446b5fb6e2ab8b3fcfc2636f4b427d
 UPLOAD_FOLDER = 'uploads'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
-<<<<<<< HEAD
 # --- Load Model and Preprocessing Tools ---
-=======
 # Load model and preprocessing tools
->>>>>>> f7ac1e7ce7446b5fb6e2ab8b3fcfc2636f4b427d
 try:
     model = joblib.load('models/model.pkl')
     scaler = joblib.load('models/scaler.pkl')
@@ -36,7 +25,6 @@ try:
     occupation_encoder = joblib.load('models/occupation_encoder.pkl')
     bmi_category_encoder = joblib.load('models/bmi_category_encoder.pkl')
     target_encoder = joblib.load('models/target_encoder.pkl')
-<<<<<<< HEAD
     gender_classes = list(gender_encoder.classes_)
     occupation_classes = list(occupation_encoder.classes_)
     bmi_classes = list(bmi_category_encoder.classes_)
@@ -61,10 +49,6 @@ def home():
     if 'logged_in' in session:
         return redirect(url_for('dashboard'))
     return render_template("home.html")
-
-
-=======
-
     gender_classes = list(gender_encoder.classes_)
     occupation_classes = list(occupation_encoder.classes_)
     bmi_classes = list(bmi_category_encoder.classes_)
@@ -79,12 +63,10 @@ except Exception as e:
 def home():
     return render_template("home.html")
 
->>>>>>> f7ac1e7ce7446b5fb6e2ab8b3fcfc2636f4b427d
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     error = None
     if request.method == 'POST':
-<<<<<<< HEAD
         email = request.form.get('email')
         password = request.form.get('password')
         user = login_user(email, password)
@@ -180,7 +162,6 @@ def preview(filename):
 @login_required
 def data_server(filename):
     file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-=======
         username = request.form.get('username')
         password = request.form.get('password')
         if username == "admin" and password == "1234":
@@ -248,15 +229,12 @@ def index():
 @app.route('/data_server/<filename>', methods=['POST'])
 def data_server(filename):
     file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-
->>>>>>> f7ac1e7ce7446b5fb6e2ab8b3fcfc2636f4b427d
     try:
         df = pd.read_csv(file_path)
         draw = int(request.form.get('draw', 1))
         start = int(request.form.get('start', 0))
         length = int(request.form.get('length', 10))
         search_value = request.form.get('search[value]', '').lower()
-<<<<<<< HEAD
         if search_value:
             mask = df.apply(lambda row: row.astype(str).str.lower().str.contains(search_value).any(), axis=1)
             df_filtered = df[mask]
@@ -269,7 +247,6 @@ def data_server(filename):
         return jsonify({
             'draw': draw,
             'recordsTotal': len(df),
-=======
 
         if search_value:
             df = df[df.apply(lambda row: row.astype(str).str.lower().str.contains(search_value).any(), axis=1)]
@@ -280,12 +257,10 @@ def data_server(filename):
         return jsonify({
             'draw': draw,
             'recordsTotal': records_total,
->>>>>>> f7ac1e7ce7446b5fb6e2ab8b3fcfc2636f4b427d
             'recordsFiltered': records_total,
             'data': df_page.values.tolist()
         })
     except Exception as e:
-<<<<<<< HEAD
         return jsonify({'error': str(e)})
 
 
@@ -570,8 +545,6 @@ def profile():
         else:
             error = "Failed to update profile."
     return render_template("profile.html", user=user, error=error, success=success)
-
-=======
         return jsonify({
             'draw': 1,
             'recordsTotal': 0,
@@ -635,7 +608,6 @@ def predict():
 
     except Exception as e:
         return f"<h3 class='text-danger'>❌ Error in prediction: {str(e)}</h3>"
->>>>>>> f7ac1e7ce7446b5fb6e2ab8b3fcfc2636f4b427d
 
 if __name__ == '__main__':
     app.run(debug=True)
