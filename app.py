@@ -1,613 +1,341 @@
-# app.py
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify, flash
-from flask import Flask, render_template, request, redirect, url_for, session, jsonify
 import joblib
 import numpy as np
 import pandas as pd
 import os
 from werkzeug.utils import secure_filename
 from database import *
+from functools import wraps
 
 app = Flask(__name__)
-app.secret_key = "a_very_secret_key_for_sleep_app_2024"
-app = Flask(__name__)
-app.secret_key = "your_secret_key"
-UPLOAD_FOLDER = 'uploads'
+app.secret_key = "sleep_app_secret_key"
+
+UPLOAD_FOLDER = "uploads"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 
-# --- Load Model and Preprocessing Tools ---
-# Load model and preprocessing tools
+
+# ---------------- MODEL LOADING ---------------- #
+
 try:
-    model = joblib.load('models/model.pkl')
-    scaler = joblib.load('models/scaler.pkl')
-    gender_encoder = joblib.load('models/gender_encoder.pkl')
-    occupation_encoder = joblib.load('models/occupation_encoder.pkl')
-    bmi_category_encoder = joblib.load('models/bmi_category_encoder.pkl')
-    target_encoder = joblib.load('models/target_encoder.pkl')
+    model = joblib.load("models/model.pkl")
+    scaler = joblib.load("models/scaler.pkl")
+
+    gender_encoder = joblib.load("models/gender_encoder.pkl")
+    occupation_encoder = joblib.load("models/occupation_encoder.pkl")
+    bmi_category_encoder = joblib.load("models/bmi_category_encoder.pkl")
+    target_encoder = joblib.load("models/target_encoder.pkl")
+
     gender_classes = list(gender_encoder.classes_)
     occupation_classes = list(occupation_encoder.classes_)
     bmi_classes = list(bmi_category_encoder.classes_)
-    blood_pressure_classes = ["120/80", "130/85", "140/90", "110/70", "115/75", "125/80", "135/85"]
-except Exception as e:
-    raise SystemExit(f"Error loading model or encoders: {e}")
 
+    blood_pressure_classes = [
+        "120/80","130/85","140/90","110/70",
+        "115/75","125/80","135/85"
+    ]
+
+except Exception as e:
+    raise SystemExit(f"Error loading model files: {e}")
+
+
+# ---------------- LOGIN REQUIRED ---------------- #
 
 def login_required(f):
-    from functools import wraps
     @wraps(f)
     def wrap(*args, **kwargs):
-        if 'logged_in' in session:
-            return f(*args, **kwargs)
-        else:
-            return redirect(url_for('login'))
+        if "logged_in" not in session:
+            return redirect(url_for("login"))
+        return f(*args, **kwargs)
     return wrap
 
 
-@app.route('/')
+# ---------------- HOME ---------------- #
+
+@app.route("/")
 def home():
-    if 'logged_in' in session:
-        return redirect(url_for('dashboard'))
-    return render_template("home.html")
-    gender_classes = list(gender_encoder.classes_)
-    occupation_classes = list(occupation_encoder.classes_)
-    bmi_classes = list(bmi_category_encoder.classes_)
-
-    # Add Blood Pressure Options
-    blood_pressure_classes = ["120/80", "130/85", "140/90", "110/70", "115/75", "125/80", "135/85"]
-
-except Exception as e:
-    raise SystemExit(f"Error loading model or encoders: {e}")
-
-@app.route('/')
-def home():
+    if session.get("logged_in"):
+        return redirect(url_for("dashboard"))
     return render_template("home.html")
 
-@app.route('/login', methods=['GET', 'POST'])
+
+# ---------------- LOGIN ---------------- #
+
+@app.route("/login", methods=["GET","POST"])
 def login():
-    error = None
-    if request.method == 'POST':
-        email = request.form.get('email')
-        password = request.form.get('password')
-        user = login_user(email, password)
+    error=None
+    if request.method=="POST":
+
+        email=request.form.get("email")
+        password=request.form.get("password")
+
+        user=login_user(email,password)
+
         if user:
-            session['logged_in'] = True
-            session['user_id'] = user['id']
-            return redirect(url_for('dashboard'))
+            session["logged_in"]=True
+            session["user_id"]=user["id"]
+            return redirect(url_for("dashboard"))
         else:
-            error = "Invalid email or password."
-    return render_template("login.html", error=error)
+            error="Invalid email or password"
+
+    return render_template("login.html",error=error)
 
 
-@app.route('/register', methods=['GET', 'POST'])
+# ---------------- REGISTER ---------------- #
+
+@app.route("/register",methods=["GET","POST"])
 def register():
-    error = None
-    success = None
-    if request.method == 'POST':
-        email = request.form.get('email')
-        password = request.form.get('password')
-        confirm_password = request.form.get('confirm_password')
+
+    error=None
+    success=None
+
+    if request.method=="POST":
+
+        email=request.form.get("email")
+        password=request.form.get("password")
+        confirm=request.form.get("confirm_password")
+
         if not email or not password:
-            error = "Email and password are required."
-        elif password != confirm_password:
-            error = "Passwords do not match."
-        elif len(password) < 6:
-            error = "Password must be at least 6 characters long."
+            error="Email and password required"
+
+        elif password!=confirm:
+            error="Passwords do not match"
+
         else:
-            if register_user(email, password):
-                success = "Registration successful! You can now log in."
+            if register_user(email,password):
+                success="Registration successful"
             else:
-                error = "Email address already exists."
-    return render_template("register.html", error=error, success=success)
+                error="Email already exists"
+
+    return render_template("register.html",error=error,success=success)
 
 
-@app.route('/logout')
+# ---------------- LOGOUT ---------------- #
+
+@app.route("/logout")
 def logout():
     session.clear()
-    return redirect(url_for('home'))
+    return redirect(url_for("home"))
 
 
-@app.route('/dashboard')
+# ---------------- DASHBOARD ---------------- #
+
+@app.route("/dashboard")
 @login_required
 def dashboard():
-    user_id = session['user_id']
-    user = get_user_by_id(user_id)
-    if not user:
-        session.clear()
-        return redirect(url_for('login'))
-    stats = get_dashboard_stats(user_id)
-    recent_predictions = get_user_predictions(user_id, limit=5)
-    return render_template("dashboard.html", user=user, stats=stats, recent_predictions=recent_predictions)
 
+    user_id=session["user_id"]
 
-@app.route('/upload', methods=['GET', 'POST'])
-@login_required
-def upload():
-    if request.method == 'POST':
-        file = request.files.get('document')
-        if not file or file.filename == '':
-            flash("No file selected.", "warning")
-            return redirect(url_for('upload'))
-        filename = secure_filename(file.filename)
-        if not filename.endswith('.csv'):
-            flash("Please upload a CSV file.", "danger")
-            return redirect(url_for('upload'))
-        try:
-            file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-            file.save(file_path)
-            return redirect(url_for('preview', filename=filename))
-        except Exception as e:
-            flash(f"Upload error: {str(e)}", "danger")
-            return redirect(url_for('upload'))
-    return render_template("upload.html")
+    user=get_user_by_id(user_id)
 
+    stats=get_dashboard_stats(user_id)
 
-@app.route('/preview/<filename>')
-@login_required
-def preview(filename):
-    file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-    if not os.path.exists(file_path):
-        flash("File not found.", "warning")
-        return redirect(url_for('upload'))
-    try:
-        df = pd.read_csv(file_path, nrows=1)
-        headers = df.columns.tolist()
-    except Exception as e:
-        flash(f"Error reading file: {str(e)}", "danger")
-        headers = []
-    return render_template("preview.html", filename=filename, headers=headers)
+    recent_predictions=get_user_predictions(user_id,limit=5)
 
-
-@app.route('/data_server/<filename>', methods=['POST'])
-@login_required
-def data_server(filename):
-    file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-        username = request.form.get('username')
-        password = request.form.get('password')
-        if username == "admin" and password == "1234":
-            session['logged_in'] = True
-            return redirect(url_for('user'))
-        else:
-            error = "❌ Invalid username or password"
-    return render_template("login.html", error=error)
-
-@app.route('/user')
-def user():
-    if not session.get('logged_in'):
-        return redirect(url_for('login'))
-    return render_template("user.html")
-
-@app.route('/upload', methods=['GET', 'POST'])
-def upload():
-    if not session.get('logged_in'):
-        return redirect(url_for('login'))
-
-    if request.method == 'POST':
-        file = request.files.get('document')
-        if not file or file.filename == '':
-            return "<h3 class='text-danger'>❌ No file selected</h3>"
-
-        try:
-            filename = secure_filename(file.filename)
-            file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-            return redirect(url_for('preview', filename=filename))
-        except Exception as e:
-            return f"<h3 class='text-danger'>⚠️ Upload error: {str(e)}</h3><br><a href='/upload' class='btn btn-outline-light'>Go Back</a>"
-
-    return render_template("upload.html")
-
-@app.route('/preview/<filename>')
-def preview(filename):
-    if not session.get('logged_in'):
-        return redirect(url_for('login'))
-
-    file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-
-    if not os.path.exists(file_path):
-        return "<h3 class='text-warning'>📄 File not found. Please re-upload.</h3>"
-
-    try:
-        df = pd.read_csv(file_path, nrows=1)
-        headers = df.columns.tolist()
-    except Exception:
-        headers = []
-
-    return render_template("preview.html", filename=filename, headers=headers)
-
-@app.route('/index', methods=['GET'])
-def index():
-    if not session.get('logged_in'):
-        return redirect(url_for('login'))
-
-    return render_template("index.html",
-        gender_classes=gender_classes,
-        occupation_classes=occupation_classes,
-        bmi_classes=bmi_classes,
-        blood_pressure_classes=blood_pressure_classes  # 👈 Added here
+    return render_template(
+        "dashboard.html",
+        user=user,
+        stats=stats,
+        recent_predictions=recent_predictions
     )
 
-@app.route('/data_server/<filename>', methods=['POST'])
-def data_server(filename):
-    file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-    try:
-        df = pd.read_csv(file_path)
-        draw = int(request.form.get('draw', 1))
-        start = int(request.form.get('start', 0))
-        length = int(request.form.get('length', 10))
-        search_value = request.form.get('search[value]', '').lower()
-        if search_value:
-            mask = df.apply(lambda row: row.astype(str).str.lower().str.contains(search_value).any(), axis=1)
-            df_filtered = df[mask]
-        else:
-            df_filtered = df
 
-        records_total = len(df_filtered)
-        df_page = df_filtered.iloc[start:start + length]
+# ---------------- UPLOAD CSV ---------------- #
 
-        return jsonify({
-            'draw': draw,
-            'recordsTotal': len(df),
-
-        if search_value:
-            df = df[df.apply(lambda row: row.astype(str).str.lower().str.contains(search_value).any(), axis=1)]
-
-        records_total = len(df)
-        df_page = df.iloc[start:start + length]
-
-        return jsonify({
-            'draw': draw,
-            'recordsTotal': records_total,
-            'recordsFiltered': records_total,
-            'data': df_page.values.tolist()
-        })
-    except Exception as e:
-        return jsonify({'error': str(e)})
-
-
-@app.route('/save_daily_tracking/<filename>', methods=['POST'])
+@app.route("/upload",methods=["GET","POST"])
 @login_required
-def save_daily_tracking(filename):
-    user_id = session.get('user_id')
-    file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+def upload():
+
+    if request.method=="POST":
+
+        file=request.files.get("document")
+
+        if not file or file.filename=="":
+            flash("No file selected","warning")
+            return redirect(url_for("upload"))
+
+        filename=secure_filename(file.filename)
+
+        if not filename.endswith(".csv"):
+            flash("Upload CSV file only","danger")
+            return redirect(url_for("upload"))
+
+        file_path=os.path.join(app.config["UPLOAD_FOLDER"],filename)
+        file.save(file_path)
+
+        return redirect(url_for("preview",filename=filename))
+
+    return render_template("upload.html")
+
+
+# ---------------- CSV PREVIEW ---------------- #
+
+@app.route("/preview/<filename>")
+@login_required
+def preview(filename):
+
+    file_path=os.path.join(app.config["UPLOAD_FOLDER"],filename)
+
     if not os.path.exists(file_path):
-        flash("File not found.", "warning")
-        return redirect(url_for('upload'))
-    try:
-        df = pd.read_csv(file_path)
-        saved_count = save_daily_tracking_from_csv(user_id, df, filename)
-        flash(f"Successfully saved {saved_count} entries to your daily tracking.", "success")
-    except Exception as e:
-        flash(f"Error saving entries: {str(e)}", "danger")
-    return redirect(url_for('dashboard'))
+        flash("File not found","danger")
+        return redirect(url_for("upload"))
+
+    df=pd.read_csv(file_path,nrows=5)
+
+    headers=df.columns.tolist()
+
+    return render_template("preview.html",filename=filename,headers=headers)
 
 
-@app.route('/prefill_index', methods=['POST'])
-@login_required
-def prefill_index():
-    try:
-        data = request.get_json()
-        if not data:
-            return jsonify({"success": False, "error": "No data provided"}), 400
+# ---------------- PREDICTION PAGE ---------------- #
 
-        session['prefilled_data'] = {
-            'Gender': data.get('Gender'),
-            'Age': data.get('Age'),
-            'Occupation': data.get('Occupation'),
-            'Sleep Duration': data.get('Sleep Duration'),
-            'Quality of Sleep': data.get('Quality of Sleep'),
-            'Physical Activity': data.get('Physical Activity'),
-            'Stress Level': data.get('Stress Level'),
-            'Heart Rate': data.get('Heart Rate'),
-            'Daily Steps': data.get('Daily Steps'),
-            'BMI Category': data.get('BMI Category'),
-            'Blood Pressure': data.get('Blood Pressure')
-        }
-        return jsonify({"success": True})
-    except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
-
-
-@app.route('/index', methods=['GET'])
+@app.route("/index")
 @login_required
 def index():
-    prefilled_data = session.pop('prefilled_data', None)
+
     return render_template(
         "index.html",
         gender_classes=gender_classes,
         occupation_classes=occupation_classes,
         bmi_classes=bmi_classes,
-        prefilled_data=prefilled_data
+        blood_pressure_classes=blood_pressure_classes
     )
 
 
-@app.route('/predict', methods=['POST'])
+# ---------------- ML PREDICTION ---------------- #
+
+@app.route("/predict",methods=["POST"])
 @login_required
 def predict():
+
     try:
-        form_data = {
-            "Gender": request.form['Gender'],
-            "Age": int(request.form['Age']),
-            "Occupation": request.form['Occupation'],
-            "Sleep Duration": float(request.form['Sleep_duration']),
-            "Quality of Sleep": int(request.form['Quality_of_sleep']),
-            "Physical Activity": float(request.form['Physical_activity']),
-            "Stress Level": int(request.form['Stress_Level']),
-            "Heart Rate": int(request.form['Heart_rate']),
-            "Daily Steps": int(request.form['Daily_steps']),
-            "BMI Category": request.form['BMI_category'],
-            "Blood Pressure": request.form['Blood_pressure']
+
+        gender=request.form["Gender"]
+        age=int(request.form["Age"])
+        occupation=request.form["Occupation"]
+
+        sleep_duration=float(request.form["Sleep_duration"])
+        quality=int(request.form["Quality_of_sleep"])
+
+        physical=float(request.form["Physical_activity"])
+        stress=int(request.form["Stress_Level"])
+
+        heart_rate=int(request.form["Heart_rate"])
+        steps=int(request.form["Daily_steps"])
+
+        bmi=request.form["BMI_category"]
+
+        bp=request.form["Blood_pressure"]
+
+        systolic,diastolic=map(int,bp.split("/"))
+
+        gender_enc=gender_encoder.transform([gender])[0]
+        occ_enc=occupation_encoder.transform([occupation])[0]
+        bmi_enc=bmi_category_encoder.transform([bmi])[0]
+
+        input_data=np.array([[
+            gender_enc,
+            age,
+            occ_enc,
+            sleep_duration,
+            quality,
+            physical,
+            stress,
+            heart_rate,
+            steps,
+            bmi_enc,
+            systolic,
+            diastolic
+        ]])
+
+        input_scaled=scaler.transform(input_data)
+
+        prediction=model.predict(input_scaled)[0]
+
+        predicted_label=target_encoder.inverse_transform([prediction])[0]
+
+        form_data={
+            "Gender":gender,
+            "Age":age,
+            "Occupation":occupation,
+            "Sleep Duration":sleep_duration,
+            "Quality of Sleep":quality,
+            "Physical Activity":physical,
+            "Stress Level":stress,
+            "Heart Rate":heart_rate,
+            "Daily Steps":steps,
+            "BMI Category":bmi,
+            "Blood Pressure":bp
         }
-        try:
-            systolic, diastolic = map(int, form_data["Blood Pressure"].strip().split('/'))
-        except Exception:
-            flash("Invalid Blood Pressure Format. Use Systolic/Diastolic (e.g., 120/80).", "danger")
-            return redirect(url_for('index'))
 
-        gender_enc = gender_encoder.transform([form_data["Gender"]])[0]
-        occupation_enc = occupation_encoder.transform([form_data["Occupation"]])[0]
-        bmi_enc = bmi_category_encoder.transform([form_data["BMI Category"]])[0]
+        save_prediction(session["user_id"],form_data,predicted_label)
 
-        input_data = np.array([[gender_enc, form_data["Age"], occupation_enc, form_data["Sleep Duration"],
-                                form_data["Quality of Sleep"], form_data["Physical Activity"], form_data["Stress Level"],
-                                form_data["Heart Rate"], form_data["Daily Steps"], bmi_enc, systolic, diastolic]])
+        return render_template(
+            "result.html",
+            prediction=predicted_label,
+            form_data=form_data
+        )
 
-        input_scaled = scaler.transform(input_data)
-        prediction = model.predict(input_scaled)[0]
-        predicted_label = target_encoder.inverse_transform([prediction])[0]
-
-        user_id = session['user_id']
-        save_prediction(user_id, form_data, predicted_label)
-
-        suggestions = {
-            "Healthy": {
-                "title": "Healthy!",
-                "message": "Your sleep metrics are within healthy ranges. Keep up the great work!",
-                "tips": [
-                    "Maintain your current sleep schedule for consistency.",
-                    "Continue with your physical activity routine.",
-                    "Practice mindfulness or meditation before bed to enhance relaxation.",
-                    "Keep a sleep diary to track long-term trends."
-                ]
-            },
-            "Insomnia": {
-                "title": "Insomnia",
-                "message": "Your results suggest signs of insomnia. These steps can help improve your sleep quality.",
-                "tips": [
-                    "Establish a consistent bedtime and wake-up time, even on weekends.",
-                    "Create a relaxing bedtime routine (e.g., reading, taking a warm bath).",
-                    "Avoid screens (phones, tablets, computers) for at least an hour before bed.",
-                    "Keep your bedroom cool, dark, and quiet.",
-                    "Limit caffeine and alcohol, especially in the evening.",
-                    "Consider cognitive behavioral therapy for insomnia (CBT-I)."
-                ]
-            },
-            "Sleep Apnea": {
-                "title": "Potential Sleep Apnea Risk",
-                "message": "Your results indicate a potential risk for sleep apnea. It's important to seek professional medical advice.",
-                "tips": [
-                    "Consult a healthcare professional or a sleep specialist for a proper diagnosis.",
-                    "If overweight, even a small amount of weight loss can significantly improve symptoms.",
-                    "Try sleeping on your side instead of your back.",
-                    "Avoid alcohol and sedatives, as they can relax throat muscles and worsen apnea.",
-                    "Keep nasal passages open using a saline spray or a humidifier.",
-                    "Continuous Positive Airway Pressure (CPAP) therapy is a common and effective treatment."
-                ]
-            }
-        }
-        suggestion_data = suggestions.get(predicted_label, {
-            "title": "General Advice",
-            "message": "Please consult a healthcare professional for personalized advice based on your results.",
-            "tips": ["Maintain a healthy lifestyle.", "Monitor your sleep patterns.", "Seek professional help if symptoms persist."]
-        })
-
-        return render_template("result.html", prediction=predicted_label, form_data=form_data, suggestion=suggestion_data)
     except Exception as e:
-        flash(f"Error in prediction: {str(e)}", "danger")
-        return redirect(url_for('index'))
+
+        flash(f"Prediction error: {e}","danger")
+
+        return redirect(url_for("index"))
 
 
-@app.route('/history')
+# ---------------- HISTORY ---------------- #
+
+@app.route("/history")
 @login_required
 def history():
     return render_template("history.html")
 
 
-@app.route('/history_data', methods=['POST'])
+# ---------------- HISTORY DATA ---------------- #
+
+@app.route("/history_data",methods=["POST"])
 @login_required
 def history_data():
-    user_id = session['user_id']
-    draw = int(request.form.get('draw', 1))
-    start = int(request.form.get('start', 0))
-    length = int(request.form.get('length', 10))
 
-    predictions_page = get_user_predictions(user_id, limit=length, offset=start)
-    records_total = get_user_prediction_count(user_id)
+    user_id=session["user_id"]
 
-    data = []
-    for row in predictions_page:
-        data.append({
-            "id": row["id"],
-            "prediction_date": row["prediction_date"],
-            "age": row["age"],
-            "gender": row["gender"],
-            "occupation": row["occupation"],
-            "sleep_duration": row["sleep_duration"],
-            "quality_of_sleep": row["quality_of_sleep"],
-            "stress_level": row["stress_level"],
-            "bmi_category": row["bmi_category"],
-            "prediction_result": row["prediction_result"]
-        })
+    predictions=get_user_predictions(user_id)
 
-    return jsonify({
-        'draw': draw,
-        'recordsTotal': records_total,
-        'recordsFiltered': records_total,
-        'data': data
-    })
+    return jsonify(predictions)
 
 
-@app.route('/delete_prediction/<int:prediction_id>', methods=['POST'])
-@login_required
-def delete_prediction(prediction_id):
-    user_id = session['user_id']
-    success = delete_user_prediction(user_id, prediction_id)
-    if success:
-        return jsonify({"success": True, "message": "Prediction deleted successfully."})
-    else:
-        return jsonify({"success": False, "message": "Failed to delete prediction or prediction not found."}), 400
+# ---------------- PROFILE ---------------- #
 
-
-@app.route('/view_prediction/<int:prediction_id>')
-@login_required
-def view_prediction(prediction_id):
-    user_id = session['user_id']
-    prediction_data = get_user_prediction_by_id(user_id, prediction_id)
-    if not prediction_data:
-        flash("Prediction not found or access denied.", "danger")
-        return redirect(url_for('dashboard'))
-
-    form_data = {
-        "Gender": prediction_data["gender"],
-        "Age": prediction_data["age"],
-        "Occupation": prediction_data["occupation"],
-        "Sleep Duration": prediction_data["sleep_duration"],
-        "Quality of Sleep": prediction_data["quality_of_sleep"],
-        "Physical Activity": prediction_data["physical_activity_level"],
-        "Stress Level": prediction_data["stress_level"],
-        "Heart Rate": prediction_data["heart_rate"],
-        "Daily Steps": prediction_data["daily_steps"],
-        "BMI Category": prediction_data["bmi_category"],
-        "Blood Pressure": prediction_data["blood_pressure"]
-    }
-    predicted_label = prediction_data["prediction_result"]
-
-    suggestions = {
-        "Healthy": {
-            "title": "Excellent Work!",
-            "message": "Your sleep metrics are within healthy ranges. Keep up the great work!",
-            "tips": [
-                "Maintain your current sleep schedule for consistency.",
-                "Continue with your physical activity routine.",
-                "Practice mindfulness or meditation before bed to enhance relaxation.",
-                "Keep a sleep diary to track long-term trends."
-            ]
-        },
-        "Insomnia": {
-            "title": "Managing Insomnia",
-            "message": "Your results suggest signs of insomnia. These steps can help improve your sleep quality.",
-            "tips": [
-                "Establish a consistent bedtime and wake-up time, even on weekends.",
-                "Create a relaxing bedtime routine (e.g., reading, taking a warm bath).",
-                "Avoid screens (phones, tablets, computers) for at least an hour before bed.",
-                "Keep your bedroom cool, dark, and quiet.",
-                "Limit caffeine and alcohol, especially in the evening.",
-                "Consider cognitive behavioral therapy for insomnia (CBT-I)."
-            ]
-        },
-        "Sleep Apnea": {
-            "title": "Potential Sleep Apnea Risk",
-            "message": "Your results indicate a potential risk for sleep apnea. It's important to seek professional medical advice.",
-            "tips": [
-                "Consult a healthcare professional or a sleep specialist for a proper diagnosis.",
-                "If overweight, even a small amount of weight loss can significantly improve symptoms.",
-                "Try sleeping on your side instead of your back.",
-                "Avoid alcohol and sedatives, as they can relax throat muscles and worsen apnea.",
-                "Keep nasal passages open using a saline spray or a humidifier.",
-                "Continuous Positive Airway Pressure (CPAP) therapy is a common and effective treatment."
-            ]
-        }
-    }
-    suggestion_data = suggestions.get(predicted_label, {
-        "title": "General Advice",
-        "message": "Please consult a healthcare professional for personalized advice based on your results.",
-        "tips": ["Maintain a healthy lifestyle.", "Monitor your sleep patterns.", "Seek professional help if symptoms persist."]
-    })
-
-    return render_template("result.html", prediction=predicted_label, form_data=form_data, suggestion=suggestion_data, is_history_view=True)
-
-
-@app.route('/profile', methods=['GET', 'POST'])
+@app.route("/profile",methods=["GET","POST"])
 @login_required
 def profile():
-    user_id = session['user_id']
-    user = get_user_by_id(user_id)
-    if not user:
-        session.clear()
-        return redirect(url_for('login'))
-    error = None
-    success = None
-    if request.method == 'POST':
-        first_name = request.form.get('first_name', '').strip()
-        last_name = request.form.get('last_name', '').strip()
-        if update_user_profile(user_id, first_name, last_name):
-            success = "Profile updated successfully!"
-            user = get_user_by_id(user_id)
+
+    user_id=session["user_id"]
+
+    user=get_user_by_id(user_id)
+
+    error=None
+    success=None
+
+    if request.method=="POST":
+
+        first=request.form.get("first_name")
+        last=request.form.get("last_name")
+
+        if update_user_profile(user_id,first,last):
+            success="Profile updated"
         else:
-            error = "Failed to update profile."
-    return render_template("profile.html", user=user, error=error, success=success)
-        return jsonify({
-            'draw': 1,
-            'recordsTotal': 0,
-            'recordsFiltered': 0,
-            'data': [],
-            'error': str(e)
-        })
-@app.route('/predict', methods=['POST'])
-def predict():
-    try:
-        gender = request.form['Gender']
-        age = int(request.form['Age'])
-        occupation = request.form['Occupation']
-        sleep_duration = float(request.form['Sleep_duration'])
-        quality_of_sleep = int(request.form['Quality_of_sleep'])
-        physical_activity = float(request.form['Physical_activity'])
-        stress_level = int(request.form['Stress_Level'])
-        heart_rate = int(request.form['Heart_rate'])
-        daily_steps = int(request.form['Daily_steps'])
-        bmi_category = request.form['BMI_category']
-        bp_raw = request.form['Blood_pressure']
+            error="Update failed"
 
-        # Parse blood pressure
-        try:
-            systolic, diastolic = map(int, bp_raw.strip().split('/'))
-        except Exception as e:
-            return "<h3 class='text-danger'>⚠️ Invalid Blood Pressure Format. Use format like 120/80.</h3>"
+    return render_template(
+        "profile.html",
+        user=user,
+        error=error,
+        success=success
+    )
 
-        # Encode categorical features
-        gender_enc = gender_encoder.transform([gender])[0]
-        occupation_enc = occupation_encoder.transform([occupation])[0]
-        bmi_enc = bmi_category_encoder.transform([bmi_category])[0]
 
-        # Prepare input data
-        input_data = np.array([[gender_enc, age, occupation_enc, sleep_duration,
-                                quality_of_sleep, physical_activity, stress_level,
-                                heart_rate, daily_steps, bmi_enc, systolic, diastolic]])
+# ---------------- MAIN ---------------- #
 
-        # Scale only if needed
-        input_scaled = scaler.transform(input_data)
-        prediction = model.predict(input_scaled)[0]  # Use scaled input
-
-        # Pass all form values to result page
-        form_data = {
-            "Gender": gender,
-            "Age": age,
-            "Occupation": occupation,
-            "Sleep Duration": sleep_duration,
-            "Quality of Sleep": quality_of_sleep,
-            "Physical Activity": physical_activity,
-            "Stress Level": stress_level,
-            "Heart Rate": heart_rate,
-            "Daily Steps": daily_steps,
-            "BMI Category": bmi_category,
-            "Blood Pressure": bp_raw
-        }
-
-        predicted_label = target_encoder.inverse_transform([prediction])[0]
-
-        return render_template("result.html", prediction=predicted_label, form_data=form_data)
-
-    except Exception as e:
-        return f"<h3 class='text-danger'>❌ Error in prediction: {str(e)}</h3>"
-
-if __name__ == '__main__':
+if __name__=="__main__":
     app.run(debug=True)
