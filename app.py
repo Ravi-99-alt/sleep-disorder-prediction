@@ -63,7 +63,9 @@ def home():
 
 @app.route("/login", methods=["GET","POST"])
 def login():
+
     error=None
+
     if request.method=="POST":
 
         email=request.form.get("email")
@@ -193,12 +195,15 @@ def preview(filename):
 @login_required
 def index():
 
+    prefilled_data = {}
+
     return render_template(
         "index.html",
         gender_classes=gender_classes,
         occupation_classes=occupation_classes,
         bmi_classes=bmi_classes,
-        blood_pressure_classes=blood_pressure_classes
+        blood_pressure_classes=blood_pressure_classes,
+        prefilled_data=prefilled_data
     )
 
 
@@ -234,6 +239,7 @@ def predict():
         bmi_enc=bmi_category_encoder.transform([bmi])[0]
 
         input_data=np.array([[
+
             gender_enc,
             age,
             occ_enc,
@@ -246,6 +252,7 @@ def predict():
             bmi_enc,
             systolic,
             diastolic
+
         ]])
 
         input_scaled=scaler.transform(input_data)
@@ -255,6 +262,7 @@ def predict():
         predicted_label=target_encoder.inverse_transform([prediction])[0]
 
         form_data={
+
             "Gender":gender,
             "Age":age,
             "Occupation":occupation,
@@ -266,6 +274,7 @@ def predict():
             "Daily Steps":steps,
             "BMI Category":bmi,
             "Blood Pressure":bp
+
         }
 
         save_prediction(session["user_id"],form_data,predicted_label)
